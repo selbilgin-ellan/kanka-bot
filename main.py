@@ -9,13 +9,14 @@ TELEGRAM_URL = f"https://api.telegram.org/bot{TOKEN}"
 
 def send_message(chat_id, text):
     try:
-        requests.post(
+        response = requests.post(
             f"{TELEGRAM_URL}/sendMessage",
             json={
                 "chat_id": chat_id,
                 "text": text
             }
         )
+        print("TELEGRAM RESPONSE:", response.text)
     except Exception as e:
         print("HATA:", e)
 
