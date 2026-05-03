@@ -35,7 +35,6 @@ async def webhook(request: Request, background_tasks: BackgroundTasks):
 
     reply = f"Mesajını aldım: {text}"
 
-    # 🔥 ASIL OLAY BURASI
     background_tasks.add_task(send_message, chat_id, reply)
 
     return {"ok": True}
