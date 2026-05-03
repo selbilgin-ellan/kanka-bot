@@ -11,7 +11,11 @@ async def webhook(request: Request):
     data = await request.json()
     print("DATA:", data)
 
-    message = data.get("message")
+    message = (
+        data.get("message")
+        or data.get("edited_message")
+        or data.get("channel_post")
+    )
 
     if not message:
         return {"ok": True}
