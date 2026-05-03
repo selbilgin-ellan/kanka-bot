@@ -1,40 +1,38 @@
-from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi import FastAPI, Request
 import requests
-import os
 
 app = FastAPI()
 
-TOKEN = 8627427380:AAEicdo2m-_M0rJudt84CepHSlphwj8W79k
+TOKEN = "BURAYA_YENI_TOKEN"  # tırnak şart
 TELEGRAM_URL = f"https://api.telegram.org/bot{TOKEN}"
 
-def send_message(chat_id, text):
-    try:
-        response = requests.post(
-            f"{TELEGRAM_URL}/sendMessage",
-            json={
-                "chat_id": chat_id,
-                "text": text
-            }
-        )
-        print("TELEGRAM RESPONSE:", response.text)
-    except Exception as e:
-        print("HATA:", e)
+@app.get("/")
+def home():
+    return {"status": "ok"}
 
 @app.post("/webhook")
-async def webhook(request: Request, background_tasks: BackgroundTasks):
-    data = await request.json()
+async def webhook(request: Request):
+    try:
+        data = await request.json()
+        print("DATA:", data)
 
-    print("DATA:", data)
+        message = data.get("message")
+        if not message:
+            return {"ok": True}
 
-    message = data.get("message", {})
-    chat_id = message.get("chat", {}).get("id")
-    text = message.get("text", "")
+        chat_id = message["chat"]["id"]
+        text = message.get("text", "")
 
-    if not chat_id:
-        return {"ok": True}
+        reply = f"Mesajını aldım: {text}"
 
-    reply = f"Mesajını aldım: {text}"
+        r = requests.post(
+            f"{TELEGRAM_URL}/sendMessage",
+            json={"chat_id": chat_id, "text": reply},
+            timeout=5
+        )
+        print("TELEGRAM:", r.text)
 
-    background_tasks.add_task(send_message, chat_id, reply)
+    except Exception as e:
+        print("ERROR:", str(e))
 
     return {"ok": True}
