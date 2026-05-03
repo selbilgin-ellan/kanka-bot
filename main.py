@@ -7,7 +7,7 @@ app = FastAPI()
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_URL = f"https://api.telegram.org/bot{TOKEN}"
 
-OWNER_ID = 6474213349
+OWNER_ID =6474213349
 
 @app.get("/")
 def home():
