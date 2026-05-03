@@ -21,9 +21,6 @@ async def webhook(request: Request):
     chat_id = message.get("chat", {}).get("id")
     text = message.get("text", "")
 
-    if chat_id != OWNER_ID:
-        return {"ok": True}
-
     reply = f"Mesajını aldım: {text}"
 
     requests.post(f"{TELEGRAM_URL}/sendMessage", json={
