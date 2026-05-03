@@ -4,7 +4,7 @@ import os
 
 app = FastAPI()
 
-TOKEN = os.getenv("TELEGRAM_TOKEN")
+TOKEN = 8627427380:AAEicdo2m-_M0rJudt84CepHSlphwj8W79k
 TELEGRAM_URL = f"https://api.telegram.org/bot{TOKEN}"
 
 def send_message(chat_id, text):
