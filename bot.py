@@ -142,11 +142,22 @@ def sayac_kontrol():
                 if not s["gonderildi"]:
                     bitis = datetime.fromisoformat(s["bitis"])
 
-                    if datetime.now() >= bitis:
-                        for i in range(5):
-    send_message(s["chat_id"], f"⏰ SÜRE DOLDU: {s['mesaj']}")
-    time.sleep(1)
+                    if datetime.now() >= bitis and not s["gonderildi"]:
                         s["gonderildi"] = True
+
+                            data["alarm"] = True
+                            save_data(data)
+
+                            def alarm_baslat(chat_id, mesaj):
+                                while True:
+                                    data = load_data()
+                                if not data.get("alarm"):
+                                    break
+
+                                    send_message(chat_id, f"⏰ ALARM: {mesaj}")
+                                        time.sleep(3)
+
+                                        threading.Thread(target=alarm_baslat, args=(s["chat_id"], s["mesaj"])).start()e
 
             save_data(data)
 
