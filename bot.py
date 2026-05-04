@@ -1,7 +1,7 @@
 import requests
 import time
 
-TOKEN = "BURAYA_TOKEN"
+TOKEN = "8627427380:AAEicdo2m-_M0rJudt84CepHSlphwj8W79k"
 URL = f"https://api.telegram.org/bot{TOKEN}"
 
 last_update_id = None
