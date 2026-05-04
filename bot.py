@@ -27,7 +27,7 @@ print("Bot çalışıyor...")
 while True:
     data = get_updates()
 
-    for update in data["result"]:
+for update in data.get("result", []):
         last_update_id = update["update_id"]
 
         message = update.get("message")
