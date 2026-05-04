@@ -4,7 +4,7 @@ import threading
 from fastapi import FastAPI
 import uvicorn
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 
 TOKEN = "8627427380:AAEicdo2m-_M0rJudt84CepHSlphwj8W79k"
 URL = f"https://api.telegram.org/bot{TOKEN}"
@@ -14,7 +14,7 @@ last_update_id = 0
 
 
 # =====================
-# DATA (hafıza)
+# DATA
 # =====================
 
 def load_data():
@@ -30,7 +30,7 @@ def save_data(data):
 
 
 # =====================
-# KOMUT SİSTEMİ
+# KOMUT
 # =====================
 
 def handle_command(text, chat_id):
@@ -38,107 +38,16 @@ def handle_command(text, chat_id):
 
     if text.startswith("/start"):
         return """Komutlar:
-/stok urun adet
-/sorgu urun
+/stok
+/sorgu
 /liste
 /kritik
-/ekle yapılacak iş
+/ekle
 /bugun
-/sayac dakika açıklama"""
+/sayac dakika açıklama
+/sayaclar"""
 
-    # 📦 STOK EKLE
-    if text.startswith("/stok"):
-        if len(parts) >= 3:
-            urun = parts[1]
-            adet = int(parts[2])
-
-            data = load_data()
-            data[urun] = data.get(urun, 0) + adet
-            save_data(data)
-
-            return f"{urun} stok: {data[urun]}"
-        return "Kullanım: /stok urun adet"
-
-    # 📦 STOK SORGULA
-    if text.startswith("/sorgu"):
-        if len(parts) >= 2:
-            urun = parts[1]
-
-            data = load_data()
-            adet = data.get(urun, 0)
-
-            return f"{urun} stok: {adet}"
-        return "Kullanım: /sorgu urun"
-
-    # 📦 TÜM STOK
-    if text.startswith("/liste"):
-        data = load_data()
-
-        if not data:
-            return "Stok boş"
-
-        cevap = "STOK DURUMU:\n"
-        for urun, adet in data.items():
-            if urun != "ajanda":
-                cevap += f"{urun}: {adet}\n"
-
-        return cevap
-
-    # ⚠️ KRİTİK STOK
-    if text.startswith("/kritik"):
-        data = load_data()
-
-        kritikler = []
-
-        for urun, adet in data.items():
-            if urun != "ajanda" and isinstance(adet, int) and adet < 50:
-                kritikler.append(f"{urun}: {adet}")
-
-        if not kritikler:
-            return "Kritik stok yok"
-
-        cevap = "KRİTİK STOK:\n"
-        for k in kritikler:
-            cevap += k + "\n"
-
-        return cevap
-
-    # 📅 AJANDA EKLE
-    if text.startswith("/ekle"):
-        content = text.replace("/ekle", "").strip()
-
-        if not content:
-            return "Kullanım: /ekle yapılacak iş"
-
-        data = load_data()
-        today = datetime.now().strftime("%Y-%m-%d")
-
-        if "ajanda" not in data:
-            data["ajanda"] = {}
-
-        if today not in data["ajanda"]:
-            data["ajanda"][today] = []
-
-        data["ajanda"][today].append(content)
-        save_data(data)
-
-        return f"Bugüne eklendi: {content}"
-
-    # 📅 BUGÜNÜ GÖR
-    if text.startswith("/bugun"):
-        data = load_data()
-        today = datetime.now().strftime("%Y-%m-%d")
-
-        if "ajanda" not in data or today not in data["ajanda"]:
-            return "Bugün için kayıt yok"
-
-        cevap = f"BUGÜN ({today}):\n"
-        for i, item in enumerate(data["ajanda"][today], 1):
-            cevap += f"{i}. {item}\n"
-
-        return cevap
-
-    # ⏰ GERİ SAYIM
+    # ⏰ KALICI SAYAÇ
     if text.startswith("/sayac"):
         parts = text.split(maxsplit=2)
 
@@ -148,13 +57,42 @@ def handle_command(text, chat_id):
         dakika = int(parts[1])
         mesaj = parts[2] if len(parts) > 2 else "Süre doldu"
 
-        def hatirlat(chat_id, dakika, mesaj):
-            time.sleep(dakika * 60)
-            send_message(chat_id, f"⏰ SÜRE DOLDU: {mesaj}")
+        bitis = datetime.now() + timedelta(minutes=dakika)
 
-        threading.Thread(target=hatirlat, args=(chat_id, dakika, mesaj)).start()
+        data = load_data()
 
-        return f"{dakika} dakika geri sayım başladı: {mesaj}"
+        if "sayaclar" not in data:
+            data["sayaclar"] = []
+
+        data["sayaclar"].append({
+            "chat_id": chat_id,
+            "mesaj": mesaj,
+            "bitis": bitis.isoformat(),
+            "gonderildi": False
+        })
+
+        save_data(data)
+
+        return f"{dakika} dk sayaç kuruldu"
+
+    # 📋 AKTİF SAYAÇLAR
+    if text.startswith("/sayaclar"):
+        data = load_data()
+
+        if "sayaclar" not in data or not data["sayaclar"]:
+            return "Aktif sayaç yok"
+
+        cevap = "AKTİF SAYAÇLAR:\n"
+
+        for s in data["sayaclar"]:
+            if not s["gonderildi"]:
+                bitis = datetime.fromisoformat(s["bitis"])
+                kalan = bitis - datetime.now()
+                dakika = int(kalan.total_seconds() / 60)
+
+                cevap += f"{s['mesaj']} → {dakika} dk kaldı\n"
+
+        return cevap
 
     return None
 
@@ -176,24 +114,41 @@ def get_updates():
         data = res.json()
 
         if not data.get("ok"):
-            print("HATA:", data)
             return {"result": []}
 
         return data
 
-    except Exception as e:
-        print("ERROR:", e)
+    except:
         return {"result": []}
 
 
 def send_message(chat_id, text):
-    try:
-        requests.post(f"{URL}/sendMessage", json={
-            "chat_id": chat_id,
-            "text": text
-        })
-    except Exception as e:
-        print("SEND ERROR:", e)
+    requests.post(f"{URL}/sendMessage", json={
+        "chat_id": chat_id,
+        "text": text
+    })
+
+
+# =====================
+# SAYAÇ KONTROL
+# =====================
+
+def sayac_kontrol():
+    while True:
+        data = load_data()
+
+        if "sayaclar" in data:
+            for s in data["sayaclar"]:
+                if not s["gonderildi"]:
+                    bitis = datetime.fromisoformat(s["bitis"])
+
+                    if datetime.now() >= bitis:
+                        send_message(s["chat_id"], f"⏰ SÜRE DOLDU: {s['mesaj']}")
+                        s["gonderildi"] = True
+
+            save_data(data)
+
+        time.sleep(5)
 
 
 # =====================
@@ -217,8 +172,6 @@ def bot_loop():
             chat_id = message["chat"]["id"]
             text = message.get("text", "")
 
-            print("Mesaj:", text)
-
             reply = handle_command(text, chat_id)
 
             if not reply:
@@ -230,7 +183,7 @@ def bot_loop():
 
 
 # =====================
-# WEB SERVER
+# WEB
 # =====================
 
 @app.get("/")
@@ -244,4 +197,5 @@ def home():
 
 if __name__ == "__main__":
     threading.Thread(target=bot_loop).start()
+    threading.Thread(target=sayac_kontrol).start()
     uvicorn.run(app, host="0.0.0.0", port=8080)
