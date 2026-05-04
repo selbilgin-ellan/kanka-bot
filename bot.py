@@ -8,22 +8,26 @@ TOKEN = "SENIN_TOKEN"
 URL = f"https://api.telegram.org/bot{TOKEN}"
 
 app = FastAPI()
-last_update_id = None
+last_update_id = 0
 
 def get_updates():
     global last_update_id
+
     try:
-        params = {"timeout": 30}
-        if last_update_id:
-            params["offset"] = last_update_id + 1
+        params = {
+            "timeout": 30,
+            "offset": last_update_id + 1
+        }
 
         res = requests.get(f"{URL}/getUpdates", params=params)
         data = res.json()
 
         if not data.get("ok"):
+            print("HATA:", data)
             return {"result": []}
 
         return data
+
     except Exception as e:
         print("ERROR:", e)
         return {"result": []}
