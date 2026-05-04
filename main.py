@@ -3,7 +3,7 @@ import requests
 
 app = FastAPI()
 
-TOKEN = "BURAYA_TOKEN"
+TOKEN = "8674979192:AAFn5OYVVOF4qH96To3GEvwwUkt-VslS9k8"
 URL = f"https://api.telegram.org/bot{TOKEN}"
 
 def send_message(chat_id, text):
