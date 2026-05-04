@@ -143,7 +143,9 @@ def sayac_kontrol():
                     bitis = datetime.fromisoformat(s["bitis"])
 
                     if datetime.now() >= bitis:
-                        send_message(s["chat_id"], f"⏰ SÜRE DOLDU: {s['mesaj']}")
+                        for i in range(5):
+    send_message(s["chat_id"], f"⏰ SÜRE DOLDU: {s['mesaj']}")
+    time.sleep(1)
                         s["gonderildi"] = True
 
             save_data(data)
