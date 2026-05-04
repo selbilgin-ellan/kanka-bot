@@ -4,10 +4,14 @@ import threading
 from fastapi import FastAPI
 import uvicorn
 import json
+import os
 from datetime import datetime, timedelta
 
-TOKEN = "8674979192:AAFn5OYVVOF4qH96To3GEvwwUkt-VslS9k8"
+TOKEN = "BURAYA_TELEGRAM_TOKEN"
 URL = f"https://api.telegram.org/bot{TOKEN}"
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+DEEPL_API_KEY = os.getenv("DEEPL_API_KEY")
 
 app = FastAPI()
 last_update_id = 0
@@ -40,7 +44,32 @@ def handle_command(text, chat_id):
         return """Komutlar:
 /sayac dakika açıklama
 /sayaclar
-/dur"""
+/dur
+/cevir metin"""
+
+    # 🌍 PROFESYONEL ÇEVİRİ
+    if text.startswith("/cevir"):
+        content = text.replace("/cevir", "").strip()
+
+        if not content:
+            return "Kullanım: /cevir metin"
+
+        deepl = deepl_translate(content)
+        google = google_translate(content)
+        best = ai_select_best(content, deepl, google)
+
+        return f"""🌍 EN İYİ ÇEVİRİ:
+
+{best}
+
+--- kaynaklar ---
+
+DeepL:
+{deepl}
+
+Google:
+{google}
+"""
 
     # ⏰ SAYAÇ KUR
     if text.startswith("/sayac"):
@@ -100,6 +129,80 @@ def handle_command(text, chat_id):
 
 
 # =====================
+# ÇEVİRİ MOTORLARI
+# =====================
+
+def deepl_translate(text):
+    try:
+        url = "https://api-free.deepl.com/v2/translate"
+
+        params = {
+            "auth_key": DEEPL_API_KEY,
+            "text": text,
+            "target_lang": "EN"
+        }
+
+        res = requests.post(url, data=params)
+        return res.json()["translations"][0]["text"]
+
+    except:
+        return "DeepL hata"
+
+
+def google_translate(text):
+    try:
+        url = "https://translate.googleapis.com/translate_a/single"
+
+        params = {
+            "client": "gtx",
+            "sl": "tr",
+            "tl": "en",
+            "dt": "t",
+            "q": text
+        }
+
+        res = requests.get(url, params=params)
+        return res.json()[0][0][0]
+
+    except:
+        return "Google hata"
+
+
+def ai_select_best(original, t1, t2):
+    try:
+        url = "https://api.openai.com/v1/chat/completions"
+
+        headers = {
+            "Authorization": f"Bearer {OPENAI_API_KEY}"
+        }
+
+        prompt = f"""
+Original text:
+{original}
+
+Translation 1:
+{t1}
+
+Translation 2:
+{t2}
+
+Choose the best translation and improve it if needed.
+Return ONLY final version.
+"""
+
+        data = {
+            "model": "gpt-4.1-mini",
+            "messages": [{"role": "user", "content": prompt}]
+        }
+
+        res = requests.post(url, headers=headers, json=data)
+        return res.json()["choices"][0]["message"]["content"]
+
+    except:
+        return t1
+
+
+# =====================
 # TELEGRAM
 # =====================
 
@@ -132,7 +235,7 @@ def send_message(chat_id, text):
 
 
 # =====================
-# ALARM SİSTEMİ
+# ALARM
 # =====================
 
 def alarm_baslat(chat_id, mesaj):
@@ -202,17 +305,13 @@ def bot_loop():
 
 
 # =====================
-# WEB
+# RUN
 # =====================
 
 @app.get("/")
 def home():
     return {"status": "ok"}
 
-
-# =====================
-# RUN
-# =====================
 
 if __name__ == "__main__":
     threading.Thread(target=bot_loop).start()
