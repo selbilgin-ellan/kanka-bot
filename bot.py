@@ -7,7 +7,7 @@ import json
 import os
 from datetime import datetime, timedelta
 
-TOKEN = "BURAYA_TELEGRAM_TOKEN"
+TOKEN = "8674979192:AAFn5OYVVOF4qH96To3GEvwwUkt-VslS9k8"
 URL = f"https://api.telegram.org/bot{TOKEN}"
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
