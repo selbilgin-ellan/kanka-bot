@@ -48,7 +48,7 @@ def handle_command(text, chat_id):
 /cevir metin"""
 
     # 🌍 PROFESYONEL ÇEVİRİ
-    if text.startswith("/cevir"):
+    if "/cevir" in text:
         content = text.replace("/cevir", "").strip()
 
         if not content:
