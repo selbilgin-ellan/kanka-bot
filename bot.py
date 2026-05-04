@@ -4,6 +4,7 @@ import threading
 from fastapi import FastAPI
 import uvicorn
 import json
+from datetime import datetime
 
 TOKEN = "8627427380:AAEicdo2m-_M0rJudt84CepHSlphwj8W79k"
 URL = f"https://api.telegram.org/bot{TOKEN}"
@@ -36,8 +37,15 @@ def handle_command(text):
     parts = text.strip().split()
 
     if text.startswith("/start"):
-        return "Komutlar:\n/stok urun adet\n/sorgu urun\n/liste\n/kritik"
+        return """Komutlar:
+/stok urun adet
+/sorgu urun
+/liste
+/kritik
+/ekle yapılacak iş
+/bugun"""
 
+    # 📦 STOK EKLE
     if text.startswith("/stok"):
         if len(parts) >= 3:
             urun = parts[1]
@@ -50,6 +58,7 @@ def handle_command(text):
             return f"{urun} stok: {data[urun]}"
         return "Kullanım: /stok urun adet"
 
+    # 📦 STOK SORGULA
     if text.startswith("/sorgu"):
         if len(parts) >= 2:
             urun = parts[1]
@@ -60,6 +69,7 @@ def handle_command(text):
             return f"{urun} stok: {adet}"
         return "Kullanım: /sorgu urun"
 
+    # 📦 TÜM STOK
     if text.startswith("/liste"):
         data = load_data()
 
@@ -68,21 +78,19 @@ def handle_command(text):
 
         cevap = "STOK DURUMU:\n"
         for urun, adet in data.items():
-            cevap += f"{urun}: {adet}\n"
+            if urun != "ajanda":
+                cevap += f"{urun}: {adet}\n"
 
         return cevap
 
-    # 🔥 YENİ EKLENEN: KRİTİK STOK
+    # ⚠️ KRİTİK STOK
     if text.startswith("/kritik"):
         data = load_data()
-
-        if not data:
-            return "Stok yok"
 
         kritikler = []
 
         for urun, adet in data.items():
-            if adet < 50:
+            if urun != "ajanda" and isinstance(adet, int) and adet < 50:
                 kritikler.append(f"{urun}: {adet}")
 
         if not kritikler:
@@ -91,6 +99,44 @@ def handle_command(text):
         cevap = "KRİTİK STOK:\n"
         for k in kritikler:
             cevap += k + "\n"
+
+        return cevap
+
+    # 📅 AJANDA EKLE
+    if text.startswith("/ekle"):
+        content = text.replace("/ekle", "").strip()
+
+        if not content:
+            return "Kullanım: /ekle yapılacak iş"
+
+        data = load_data()
+
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        if "ajanda" not in data:
+            data["ajanda"] = {}
+
+        if today not in data["ajanda"]:
+            data["ajanda"][today] = []
+
+        data["ajanda"][today].append(content)
+        save_data(data)
+
+        return f"Bugüne eklendi: {content}"
+
+    # 📅 BUGÜNÜ GÖR
+    if text.startswith("/bugun"):
+        data = load_data()
+
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        if "ajanda" not in data or today not in data["ajanda"]:
+            return "Bugün için kayıt yok"
+
+        cevap = f"BUGÜN ({today}):\n"
+
+        for i, item in enumerate(data["ajanda"][today], 1):
+            cevap += f"{i}. {item}\n"
 
         return cevap
 
@@ -160,7 +206,7 @@ def bot_loop():
             reply = handle_command(text)
 
             if not reply:
-                reply = f"Anlamadım. {text}"
+                reply = "Komut gir. /start yaz"
 
             send_message(chat_id, reply)
 
@@ -168,7 +214,7 @@ def bot_loop():
 
 
 # =====================
-# WEB SERVER (Railway için)
+# WEB SERVER
 # =====================
 
 @app.get("/")
