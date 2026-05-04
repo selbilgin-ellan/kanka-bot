@@ -33,7 +33,7 @@ def save_data(data):
 # KOMUT SİSTEMİ
 # =====================
 
-def handle_command(text):
+def handle_command(text, chat_id):
     parts = text.strip().split()
 
     if text.startswith("/start"):
@@ -43,7 +43,8 @@ def handle_command(text):
 /liste
 /kritik
 /ekle yapılacak iş
-/bugun"""
+/bugun
+/sayac dakika açıklama"""
 
     # 📦 STOK EKLE
     if text.startswith("/stok"):
@@ -110,7 +111,6 @@ def handle_command(text):
             return "Kullanım: /ekle yapılacak iş"
 
         data = load_data()
-
         today = datetime.now().strftime("%Y-%m-%d")
 
         if "ajanda" not in data:
@@ -127,18 +127,34 @@ def handle_command(text):
     # 📅 BUGÜNÜ GÖR
     if text.startswith("/bugun"):
         data = load_data()
-
         today = datetime.now().strftime("%Y-%m-%d")
 
         if "ajanda" not in data or today not in data["ajanda"]:
             return "Bugün için kayıt yok"
 
         cevap = f"BUGÜN ({today}):\n"
-
         for i, item in enumerate(data["ajanda"][today], 1):
             cevap += f"{i}. {item}\n"
 
         return cevap
+
+    # ⏰ GERİ SAYIM
+    if text.startswith("/sayac"):
+        parts = text.split(maxsplit=2)
+
+        if len(parts) < 2:
+            return "Kullanım: /sayac dakika açıklama"
+
+        dakika = int(parts[1])
+        mesaj = parts[2] if len(parts) > 2 else "Süre doldu"
+
+        def hatirlat(chat_id, dakika, mesaj):
+            time.sleep(dakika * 60)
+            send_message(chat_id, f"⏰ SÜRE DOLDU: {mesaj}")
+
+        threading.Thread(target=hatirlat, args=(chat_id, dakika, mesaj)).start()
+
+        return f"{dakika} dakika geri sayım başladı: {mesaj}"
 
     return None
 
@@ -203,7 +219,7 @@ def bot_loop():
 
             print("Mesaj:", text)
 
-            reply = handle_command(text)
+            reply = handle_command(text, chat_id)
 
             if not reply:
                 reply = "Komut gir. /start yaz"
