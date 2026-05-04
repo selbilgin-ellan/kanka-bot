@@ -160,7 +160,7 @@ def bot_loop():
             reply = handle_command(text)
 
             if not reply:
-                reply = f"Mesajını aldım: {text}"
+                reply = f"Anlamadım. {text}"
 
             send_message(chat_id, reply)
 
