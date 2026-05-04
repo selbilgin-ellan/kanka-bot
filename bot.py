@@ -36,7 +36,7 @@ def handle_command(text):
     parts = text.strip().split()
 
     if text.startswith("/start"):
-        return "Komutlar:\n/stok urun adet\n/sorgu urun"
+        return "Komutlar:\n/stok urun adet\n/sorgu urun\n/liste"
 
     if text.startswith("/stok"):
         if len(parts) >= 3:
@@ -59,6 +59,19 @@ def handle_command(text):
 
             return f"{urun} stok: {adet}"
         return "Kullanım: /sorgu urun"
+
+    # 🔥 YENİ EKLENEN ÖZELLİK
+    if text.startswith("/liste"):
+        data = load_data()
+
+        if not data:
+            return "Stok boş"
+
+        cevap = "STOK DURUMU:\n"
+        for urun, adet in data.items():
+            cevap += f"{urun}: {adet}\n"
+
+        return cevap
 
     return None
 
@@ -123,7 +136,6 @@ def bot_loop():
 
             print("Mesaj:", text)
 
-            # 🔥 BURASI EN KRİTİK
             reply = handle_command(text)
 
             if not reply:
