@@ -3,12 +3,69 @@ import time
 import threading
 from fastapi import FastAPI
 import uvicorn
+import json
 
 TOKEN = "8627427380:AAEicdo2m-_M0rJudt84CepHSlphwj8W79k"
 URL = f"https://api.telegram.org/bot{TOKEN}"
 
 app = FastAPI()
 last_update_id = 0
+
+
+# =====================
+# DATA (hafıza)
+# =====================
+
+def load_data():
+    try:
+        with open("data.json", "r") as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_data(data):
+    with open("data.json", "w") as f:
+        json.dump(data, f)
+
+
+# =====================
+# KOMUT SİSTEMİ
+# =====================
+
+def handle_command(text):
+    parts = text.strip().split()
+
+    if text.startswith("/start"):
+        return "Komutlar:\n/stok urun adet\n/sorgu urun"
+
+    if text.startswith("/stok"):
+        if len(parts) >= 3:
+            urun = parts[1]
+            adet = int(parts[2])
+
+            data = load_data()
+            data[urun] = data.get(urun, 0) + adet
+            save_data(data)
+
+            return f"{urun} stok: {data[urun]}"
+        return "Kullanım: /stok urun adet"
+
+    if text.startswith("/sorgu"):
+        if len(parts) >= 2:
+            urun = parts[1]
+
+            data = load_data()
+            adet = data.get(urun, 0)
+
+            return f"{urun} stok: {adet}"
+        return "Kullanım: /sorgu urun"
+
+    return None
+
+
+# =====================
+# TELEGRAM
+# =====================
 
 def get_updates():
     global last_update_id
@@ -32,6 +89,7 @@ def get_updates():
         print("ERROR:", e)
         return {"result": []}
 
+
 def send_message(chat_id, text):
     try:
         requests.post(f"{URL}/sendMessage", json={
@@ -40,6 +98,11 @@ def send_message(chat_id, text):
         })
     except Exception as e:
         print("SEND ERROR:", e)
+
+
+# =====================
+# BOT LOOP
+# =====================
 
 def bot_loop():
     global last_update_id
@@ -60,14 +123,29 @@ def bot_loop():
 
             print("Mesaj:", text)
 
-            reply = f"Mesajını aldım: {text}"
+            # 🔥 BURASI EN KRİTİK
+            reply = handle_command(text)
+
+            if not reply:
+                reply = f"Mesajını aldım: {text}"
+
             send_message(chat_id, reply)
 
         time.sleep(1)
 
+
+# =====================
+# WEB SERVER (Railway için)
+# =====================
+
 @app.get("/")
 def home():
     return {"status": "ok"}
+
+
+# =====================
+# RUN
+# =====================
 
 if __name__ == "__main__":
     threading.Thread(target=bot_loop).start()
