@@ -6,7 +6,7 @@ import uvicorn
 import json
 from datetime import datetime, timedelta
 
-TOKEN = "8627427380:AAEicdo2m-_M0rJudt84CepHSlphwj8W79k"
+TOKEN = "8674979192:AAFn5OYVVOF4qH96To3GEvwwUkt-VslS9k8"
 URL = f"https://api.telegram.org/bot{TOKEN}"
 
 app = FastAPI()
