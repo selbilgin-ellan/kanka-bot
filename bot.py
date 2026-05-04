@@ -38,16 +38,11 @@ def handle_command(text, chat_id):
 
     if text.startswith("/start"):
         return """Komutlar:
-/stok
-/sorgu
-/liste
-/kritik
-/ekle
-/bugun
 /sayac dakika açıklama
-/sayaclar"""
+/sayaclar
+/dur"""
 
-    # ⏰ KALICI SAYAÇ
+    # ⏰ SAYAÇ KUR
     if text.startswith("/sayac"):
         parts = text.split(maxsplit=2)
 
@@ -75,11 +70,11 @@ def handle_command(text, chat_id):
 
         return f"{dakika} dk sayaç kuruldu"
 
-    # 📋 AKTİF SAYAÇLAR
+    # 📋 SAYAÇLAR
     if text.startswith("/sayaclar"):
         data = load_data()
 
-        if "sayaclar" not in data or not data["sayaclar"]:
+        if "sayaclar" not in data:
             return "Aktif sayaç yok"
 
         cevap = "AKTİF SAYAÇLAR:\n"
@@ -93,6 +88,13 @@ def handle_command(text, chat_id):
                 cevap += f"{s['mesaj']} → {dakika} dk kaldı\n"
 
         return cevap
+
+    # 🔕 ALARMI DURDUR
+    if text.startswith("/dur"):
+        data = load_data()
+        data["alarm"] = False
+        save_data(data)
+        return "Alarm durduruldu"
 
     return None
 
@@ -130,8 +132,19 @@ def send_message(chat_id, text):
 
 
 # =====================
-# SAYAÇ KONTROL
+# ALARM SİSTEMİ
 # =====================
+
+def alarm_baslat(chat_id, mesaj):
+    while True:
+        data = load_data()
+
+        if not data.get("alarm"):
+            break
+
+        send_message(chat_id, f"⏰ ALARM: {mesaj}")
+        time.sleep(3)
+
 
 def sayac_kontrol():
     while True:
@@ -142,22 +155,15 @@ def sayac_kontrol():
                 if not s["gonderildi"]:
                     bitis = datetime.fromisoformat(s["bitis"])
 
-                    if datetime.now() >= bitis and not s["gonderildi"]:
+                    if datetime.now() >= bitis:
                         s["gonderildi"] = True
+                        data["alarm"] = True
+                        save_data(data)
 
-                            data["alarm"] = True
-                            save_data(data)
-
-                            def alarm_baslat(chat_id, mesaj):
-                                while True:
-                                    data = load_data()
-                                if not data.get("alarm"):
-                                    break
-
-                                    send_message(chat_id, f"⏰ ALARM: {mesaj}")
-                                        time.sleep(3)
-
-                                        threading.Thread(target=alarm_baslat, args=(s["chat_id"], s["mesaj"])).start()e
+                        threading.Thread(
+                            target=alarm_baslat,
+                            args=(s["chat_id"], s["mesaj"])
+                        ).start()
 
             save_data(data)
 
